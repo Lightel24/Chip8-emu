@@ -29,7 +29,7 @@ public class Cpu {
 
         for(int i= 0;i<TAILLEMEMOIRE;i++)
         { 
-            getMemoire()[i]= 0; 
+        	memoire[i]= 0; 
         } 
 
          for(int i= 0;i<16;i++) 
@@ -38,7 +38,7 @@ public class Cpu {
             saut[i]= 0; 
          } 
 
-        setPc(ADRESSEDEBUT); 
+         pc=ADRESSEDEBUT; 
         nbrsaut= 0; 
         compteurJeu= 0; 
         compteurSon= 0; 
@@ -82,9 +82,53 @@ public class Cpu {
 		switch (instuctionNb) {
 			case 0 : // Opcode inutile
 			break;
-			case 1 : // 00E0
+			
+			case 1 : // 00E0	CLS	Efface l'écran.
+				ecran.effacerEcran();
 			break;
+			
+			case 2 : // 00EE	rts:	return from subroutine call
+				System.out.println("[WARNING]: Instruction 00EE non implementée.");
+			break;
+			
+			case 3 : // 1NNN	jmp xxx:	Effectue un saut à l'adresse NNN.
+				pc = (short)( (opcode & 0x0FFF)-0x0002 );
+			break;
+			
+			case 4 : // 2NNN	jsr xxx:	Exécute le sous-programme à l'adresse NNN.
+				saut[nbrsaut] = pc;
+				pc = (short)( (opcode & 0x0FFF)-0x0002 );
+				if(nbrsaut<15) {
+					nbrsaut++;
+				}else { //Trop de sauts
+					System.out.println("[WARNING]: Stack overflow! Plus de 16 sauts effectués.");
+				}
+			break;
+			
+			case 5 : // 3XNN	skeq vr,xx: 	Sauter l'instruction suivante si VX est égal à NN.
+				if(V[opcode& 0x0F00] == (opcode& 0x00FF)) {
+					pc += 0x0002;
+				}
+			break;
+			
+			case 6 : // 4XNN	skne vr,xx: 	Sauter l'instruction suivante si VX et NN ne sont pas égaux.
+				if(V[opcode& 0x0F00] != (opcode& 0x00FF)) {
+					pc += 0x0002;
+				}
+			break;
+			
+			case 7 : // 5XY0	skeq vr,vy: 	Sauter l'instruction suivante si VX et VY sont égaux. 
+				if(V[opcode& 0x0F00] == V[opcode& 0x00F0]) {
+					pc += 0x0002;
+				}
+			break;
+			
+			case 8 : // 6XNN	mov vr,xx: 	Mettre NN dans VX 
+				V[opcode& 0xF00] = (byte) ((opcode& 0x00FF)<<8);
+			break;
+			
 		}
+		
 		pc+=0x0002;
 	}
 
