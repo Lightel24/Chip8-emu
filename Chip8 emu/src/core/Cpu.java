@@ -92,12 +92,12 @@ public class Cpu {
 			break;
 			
 			case 3 : // 1NNN	jmp xxx:	Effectue un saut à l'adresse NNN.
-				pc = (short)( (opcode & 0x0FFF)-0x0002 );
+				pc = (short)( (opcode & 0xFFF)-0x0002 );
 			break;
 			
 			case 4 : // 2NNN	jsr xxx:	Exécute le sous-programme à l'adresse NNN.
 				saut[nbrsaut] = pc;
-				pc = (short)( (opcode & 0x0FFF)-0x0002 );
+				pc = (short)( (opcode & 0xFFF)-0x2 );
 				if(nbrsaut<15) {
 					nbrsaut++;
 				}else { //Trop de sauts
@@ -106,25 +106,25 @@ public class Cpu {
 			break;
 			
 			case 5 : // 3XNN	skeq vr,xx: 	Sauter l'instruction suivante si VX est égal à NN.
-				if(V[opcode& 0x0F00] == (opcode& 0x00FF)) {
+				if(V[(opcode& 0x0F00)>>>8] == (opcode& 0xFF)) {
 					pc += 0x0002;
 				}
 			break;
 			
 			case 6 : // 4XNN	skne vr,xx: 	Sauter l'instruction suivante si VX et NN ne sont pas égaux.
-				if(V[opcode& 0x0F00] != (opcode& 0x00FF)) {
+				if(V[(opcode& 0x0F00)>>>8] != (opcode& 0x00FF)) {
 					pc += 0x0002;
 				}
 			break;
 			
 			case 7 : // 5XY0	skeq vr,vy: 	Sauter l'instruction suivante si VX et VY sont égaux. 
-				if(V[opcode& 0x0F00] == V[opcode& 0x00F0]) {
+				if(V[(opcode& 0x0F00)>>>8] == V[(opcode& 0x00F0)>>>4]) {
 					pc += 0x0002;
 				}
 			break;
 			
 			case 8 : // 6XNN	mov vr,xx: 	Mettre NN dans VX 
-				V[opcode& 0xF00] = (byte) ((opcode& 0x00FF)<<8);
+				V[(opcode& 0x0F00)>>>8] = (byte) ((opcode& 0x00FF)<<8);
 			break;
 			
 		}
