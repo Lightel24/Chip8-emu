@@ -1,10 +1,14 @@
 package core;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
 import graphics.Canevas;
 
 public class Cpu {
 	final static int TAILLEMEMOIRE =  4096;
-	final static short ADRESSEDEBUT =  512;
+	final static short ADRESSEDEBUT =  0x200;
 	
 	private byte[] memoire =  new byte[TAILLEMEMOIRE]; 
 	byte[] V =   new byte[16]; //le registre 
@@ -38,14 +42,45 @@ public class Cpu {
             saut[i]= 0; 
          } 
 
-         pc=ADRESSEDEBUT; 
+        pc=ADRESSEDEBUT; 
         nbrsaut= 0; 
         compteurJeu= 0; 
         compteurSon= 0; 
         I= 0; 
 
-    } 
+    }
+    
+    public void load(String filename) {
+    	File file = new File(filename);
+    	System.out.println("[LOG]: Chargement");
+    	 if(file.length()>TAILLEMEMOIRE) {
+         	System.err.println("[FATAL ERROR]: Format de la rom incorrect! La taille memoire est dépassée");
+         }else {
+        	 
+	    	FileInputStream fis = null;
+	        byte[] bArray = new byte[(int) file.length()];
+	        try{
+	            fis = new FileInputStream(file);
+	            fis.read(bArray);
+	            fis.close();        
+	            
+	        }catch(IOException ioExp){
+	            ioExp.printStackTrace();
+	        }
+	        //On copie dans la rom
+	        for(int i=ADRESSEDEBUT; i<TAILLEMEMOIRE;i++) { //Les 512 premiers octets sont réservés
+	        	if(i<bArray.length+ADRESSEDEBUT) {
+	            	memoire[i] = bArray[i-ADRESSEDEBUT];
+	        	}else {
+	        		memoire[i]=0x00;
+	        	}
+	        }
+	        for (int i = 0; i < TAILLEMEMOIRE; i++){
+	            System.out.println(String.format("%02X", memoire[i]));
+	         }
+         }
 
+    }
 
     public void decompter() 
     { 
@@ -61,12 +96,6 @@ public class Cpu {
 		return memoire;
 	}
 
-
-	public void setMemoire(byte[] memoire) {
-		this.memoire = memoire;
-	}
-
-
 	public short getPc() {
 		return pc;
 	}
@@ -78,9 +107,11 @@ public class Cpu {
 
 	public void cycle() {
 		short opcode =  recupererOpcode();
-		int instuctionNb =  jp.recupererInstructionNb(opcode);
-		switch (instuctionNb) {
+		int instructionNb =  jp.recupererInstructionNb(opcode);
+		System.out.println("[LOG]: Instruction: " + String.format("%04X", opcode) + " nb:" + instructionNb);
+		switch (instructionNb) {
 			case 0 : // Opcode inutile
+				System.out.println("[LOG]: Instruction ONNN non supportée et sera ignorée.");
 			break;
 			
 			case 1 : // 00E0	CLS	Efface l'écran.
@@ -124,9 +155,20 @@ public class Cpu {
 			break;
 			
 			case 8 : // 6XNN	mov vr,xx: 	Mettre NN dans VX 
-				V[(opcode& 0x0F00)>>>8] = (byte) ((opcode& 0x00FF)<<8);
+				V[(opcode& 0x0F00)>>>8] = (byte) ((opcode& 0xFF));
 			break;
 			
+			case 9 : // 7XNN	add vr,vx: 	Ajoute NN à VX. 
+				V[(opcode& 0x0F00)>>>8] += (byte) ((opcode& 0xFF));
+			break;
+			
+			case 10 : // 8XY0	mov vr,vy: 	Définit VX à la valeur de VY.
+				V[(opcode& 0x0F00)>>>8] += (byte) ((opcode& 0xFF));
+			break;
+			
+			default:
+				System.out.println("[WARNING]: Instruction inconnue " + String.format("%04X", opcode));
+			break;
 		}
 		
 		pc+=0x0002;
@@ -136,10 +178,35 @@ public class Cpu {
 	    return (short) ( (short)(memoire[pc]<<8) | (memoire[pc+1] & 0x00FF)); 
 	}
 	
+	// On obtient le X : 00Y0
+	private byte getX(short opcode) {
+		return compteurJeu;
+	}
+	
+	// On obtient le Y : 00Y0
+	private byte getY(short opcode) {
+		return compteurJeu;
+	}
+	
+	// On obtient le NN : 00NN
+	private byte getNN(short opcode) {
+		return compteurJeu;
+	}
+	
+	// On obtient le NNN : 0NNN
+	private byte getNNN(short opcode) {
+		return compteurJeu;
+	}
+	
+	// On obtient le N : 000N
+	private byte getN(short opcode) {
+		return compteurJeu;
+	}
+	
 	private class Jumper{
 		private final int NBROPCODE= 35;
-		short[] masque;
-		short[] instruction;
+		short[] masque = new short[NBROPCODE];
+		short[] instruction = new short[NBROPCODE];
 		
 		public Jumper() {
 			  this.masque[0]= (short)  0x0000; this.instruction[0]= (short) 0x0FFF;       	   /* 0NNN */ 
@@ -179,9 +246,11 @@ public class Cpu {
 			  this.masque[34]= (short)  0xF0FF; this.instruction[34]= (short) 0xF065;          /* FX65 */ 
 		}
 		
+		
+		
 		public int recupererInstructionNb(short opcode) {
 			int id = 0;
-			while(id<NBROPCODE || ((masque[id]&opcode) == instruction[id])) {
+			while(id<NBROPCODE && ((masque[id]&opcode) != instruction[id])) {
 				++id;
 			}
 			return id;

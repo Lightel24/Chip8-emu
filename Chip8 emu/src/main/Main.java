@@ -8,10 +8,6 @@ import graphics.Canevas;
 public class Main {
 	
 	public static void main(String[] args) {
-		byte a = (byte) 0xFF;
-		byte b = (byte) 0xFF;
-		System.out.println((a <<8)|(b & 0x00FF ));
-		
 		new Main();
 	}
 	
@@ -23,6 +19,7 @@ public class Main {
 	public Main(){
 		cpu  = new Cpu(canevas);
 		cpu.initialiserCpu();
+		cpu.load("D:\\Users\\gabri\\git\\Chip8-emu\\Chip8 emu\\ressoures\\test_opcode.ch8");
 		canevas.initialiserEcran();
 		fenetre.setSize(Canevas.largeur*Canevas.rapport,Canevas.hauteur*Canevas.rapport);
 		fenetre.setResizable(false);
