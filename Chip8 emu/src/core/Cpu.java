@@ -109,6 +109,8 @@ public class Cpu {
 		short opcode =  recupererOpcode();
 		int instructionNb =  jp.recupererInstructionNb(opcode);
 		System.out.println("[LOG]: Instruction: " + String.format("%04X", opcode) + " nb:" + instructionNb);
+		byte VY = V[(opcode& 0x00F0)>>>8];
+		byte VX = V[(opcode& 0x0F00)>>>8];
 		switch (instructionNb) {
 			case 0 : // Opcode inutile
 				System.out.println("[LOG]: Instruction ONNN non supportée et sera ignorée.");
@@ -119,7 +121,12 @@ public class Cpu {
 			break;
 			
 			case 2 : // 00EE	rts:	return from subroutine call
-				System.out.println("[WARNING]: Instruction 00EE non implementée.");
+				if(nbrsaut>0) {
+					nbrsaut--;
+					pc = saut[nbrsaut];
+				}else {
+					System.out.println("[WARNING]: Le programme émulé tente de revenir d'une fonction mais la pile de saut est vide.");
+				}
 			break;
 			
 			case 3 : // 1NNN	jmp xxx:	Effectue un saut à l'adresse NNN.
@@ -166,10 +173,58 @@ public class Cpu {
 				V[(opcode& 0x0F00)>>>8] += (byte) ((opcode& 0xFF));
 			break;
 			
+			case 11 : // 8XY1	or rx,ry: 	Définit VX à VX OR VY.
+				V[(opcode& 0x0F00)>>>8] = (byte) (V[(opcode& 0x0F00)>>>8] | V[(opcode& 0x00F0)>>>8]);
+			break;
+			
+			case 12 : // 8XY2	and rx,ry: 	Définit VX à VX AND VY.
+				V[(opcode& 0x0F00)>>>8] = (byte) (V[(opcode& 0x0F00)>>>8] & V[(opcode& 0x00F0)>>>8]);
+			break;
+			
+			case 13 : // 8XY3	xor rx,ry: 	Définit VX à VX XOR VY.
+				V[(opcode& 0x0F00)>>>8] = (byte) (V[(opcode& 0x0F00)>>>8] ^ V[(opcode& 0x00F0)>>>8]);
+			break;
+			
+			case 14 : // 8XY4	add vr,vy: 	ajoute VY à VX. VF est mis à 1 quand il y a un dépassement de mémoire (carry), et à 0 quand il n'y en pas.
+				if(VY + VX > 0xFF) {
+					V[0xF] = 0x01;
+				}else {
+					V[0xF] = 0x00;
+				}
+				V[(opcode& 0x00F0)>>>8] +=VX;
+			break;
+			
+			case 15:	//8XY5	sub vr,vy	Soustrait VY à VX. VF mit a 0 si il y a emprunt (resultat négatif) 1 sinon
+				if(VX<VY) {
+					V[0xF] = 0x00;
+				}else {
+					V[0xF] = 0x01;
+				}
+				V[(opcode& 0x0F00)>>>8] -= VY;
+			break;
+				
+			case 19: //9XY0		skne rx,ry 		Saute l'instruction suivante si VX != VY
+				if(VX!=VY) {
+					pc+=2;
+				}
+			break;
+			
+			case 20:	//ANNN	 mvi xxx:	mets I à NNN
+				I = getNNN(opcode);
+			break;
+			
+			case 23:	//DXYN sprite rx,ry,s:	 dessine un sprite aux coordonnées (VX, VY).
+				this.dessinerEcran(getX(opcode), getY(opcode), (byte) (opcode& 0x000F));
+			break;
+				
+				
 			default:
 				System.out.println("[WARNING]: Instruction inconnue " + String.format("%04X", opcode));
 			break;
 		}
+		
+		/* V[(opcode& 0x00F0)>>>8] = VY;
+		 V[(opcode& 0x0F00)>>>8] = VX;*/
 		
 		pc+=0x0002;
 	}
@@ -178,29 +233,54 @@ public class Cpu {
 	    return (short) ( (short)(memoire[pc]<<8) | (memoire[pc+1] & 0x00FF)); 
 	}
 	
-	// On obtient le X : 00Y0
+	// On obtient le X : 0X00
 	private byte getX(short opcode) {
-		return compteurJeu;
+		return (byte) ( (opcode & 0x0F00) >>> 8);
 	}
 	
 	// On obtient le Y : 00Y0
 	private byte getY(short opcode) {
-		return compteurJeu;
+		return (byte) ( (opcode & 0x00F0) >>> 4);
 	}
 	
 	// On obtient le NN : 00NN
 	private byte getNN(short opcode) {
-		return compteurJeu;
+		return (byte)(opcode & 0xFF);
 	}
 	
 	// On obtient le NNN : 0NNN
-	private byte getNNN(short opcode) {
-		return compteurJeu;
+	private short getNNN(short opcode) {
+		return (short)(opcode & 0xFFF);
 	}
 	
-	// On obtient le N : 000N
+	// On obtient le N : 00N0
 	private byte getN(short opcode) {
-		return compteurJeu;
+        return (byte) (opcode & 0x00F);
+	}
+	
+	private void dessinerEcran(byte b1,byte b2, byte b3){ 
+		byte x=0,y=0,k=0,codage=0,j=0,decalage=0; 
+	    V[0xF]=0; 
+
+	     for(k=0;k<b1;k++) 
+	        { 
+	            codage=memoire[I+k]; //on récupère le codage de la ligne à dessiner 
+
+	            y=(byte) ((V[b2]+k)%Canevas.hauteur); //on calcule l'ordonnée de la ligne à dessiner, on ne doit pas dépasser L 
+
+	            for(j=0,decalage=7;j<8;j++,decalage--) 
+	             { 
+	                x=(byte) ((V[b3]+j)%Canevas.largeur); //on calcule l'abscisse, on ne doit pas dépasser l 
+
+	                        if(((codage)&(0x1<<decalage))!=0) //on récupère le bit correspondant 
+	                        {   //si c'est blanc 
+	                            if(ecran.dessinerPixel(x, y)) //le pixel était blanc 
+	                            { 
+	                                V[0xF]=1; //il y a donc collusion 
+	                            } 
+	                        } 
+	              } 
+	        }
 	}
 	
 	private class Jumper{

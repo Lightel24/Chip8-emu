@@ -33,8 +33,9 @@ public class Main {
 
 	private void run() {
 		do {
-			
-			cpu.cycle();
+			for(int i =0;i<4;i++) {
+				cpu.cycle();
+			}
 			canevas.updateEcran();
 			try {
 				Thread.sleep(16);

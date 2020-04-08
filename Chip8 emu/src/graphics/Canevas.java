@@ -27,8 +27,13 @@ public class Canevas extends JPanel{
 	public void initialiserEcran() {
 		currentFrame = new BufferedImage(largeur*8, hauteur*8, BufferedImage.TYPE_INT_RGB); 
 	}
-	public void dessinerPixel(byte pixel,int x, int y) {
-		ecran[y][x] = pixel;
+	public boolean dessinerPixel(int x, int y) {
+		if(ecran[x][y] == 0xFF) {
+			ecran[x][y] = (byte) 0x00;
+		}else {
+			ecran[x][y] = (byte) 0xFF;
+		}
+		return ecran[x][y] == 0xFF;
 	}
 	public void effacerEcran() {
 		for(int y =0; y<currentFrame.getHeight();y++) {
