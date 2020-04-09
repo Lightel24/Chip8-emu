@@ -40,15 +40,15 @@ public class Canevas extends JPanel{
 		return previousPixel == true && newPixel == false;
 	}
 	public void effacerEcran() {
-		for(int y =0; y<currentFrame.getHeight();y++) {
-			for(int x =0; x<currentFrame.getWidth();x++) {
-				currentFrame.setRGB(x, y, 0);
+			for(int x =0; x<ecran.length;x++) {
+				for(int y =0; y<ecran[x].length;y++) {
+		        	ecran[x][y] = (byte) 0x00;
 			}
 		}
 	}
 	public void updateEcran() {
-		for(int x =0; x<currentFrame.getWidth();x++) {
-			for(int y =0; y<currentFrame.getHeight();y++) {
+		for(int y =0; y<currentFrame.getHeight();y++) {
+			for(int x =0; x<currentFrame.getWidth();x++) {
 				currentFrame.setRGB(x, y, ecran[(int) (x/rapport)][(int) (y/rapport)]);
 			}
 		}

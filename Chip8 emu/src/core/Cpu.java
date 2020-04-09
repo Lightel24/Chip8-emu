@@ -10,9 +10,7 @@ public class Cpu {
 	final static int TAILLEMEMOIRE =  4096;
 	final static short ADRESSEDEBUT =  0x200;
 	private final static byte[] DEFROM= new byte[]{
-			(byte) 0x61, 0x00,	//On met 00 dans V1
-			(byte) 0xF1,0x29,	//On déplace I sur l'adresse de V1
-			(byte) 0xDA,(byte) 0xA5,	//On dessine en A,A sur 5 octets
+			(byte) 0xF1, 0x0A,	//On attends un appui clavier et on stocke la valeur dans V1
 	};
 	
 	private byte[] memoire =  new byte[TAILLEMEMOIRE]; 
@@ -26,9 +24,11 @@ public class Cpu {
     
     private Canevas ecran;
     private Jumper jp;
+	private Keyboard keyboard;
     
-    public Cpu(Canevas ecran) {
+    public Cpu(Canevas ecran, Keyboard keyboard) {
     	this.ecran =  ecran;
+    	this.keyboard =  keyboard;
     	jp = new Jumper();
     }
     
@@ -148,7 +148,20 @@ public class Cpu {
 	public void setPc(short pc) {
 		this.pc =  pc;
 	}
-
+	
+	/*	Listes de opérations qui échouent:
+	 * 	9X
+	 *  8XY1
+	 *  8XY2
+	 *  8XY3
+	 *  8XY4
+	 *  8XY5
+	 *  FX55
+	 *  FX33
+	 *  
+	 * */
+	
+	
 	public void cycle() {
 		short opcode =  recupererOpcode();
 		int instructionNb =  jp.recupererInstructionNb(opcode);
@@ -265,8 +278,7 @@ public class Cpu {
 				V[0xF] = (byte) (VX&0x01);
 				System.out.println("[LOG]: Shift : V" + String.format("%01X",getY(opcode))+">>1 / Set VF to V"+String.format("%02X",V[0xF]));
 				
-				//We have to cast it to unsigned int to work properly. If we don't do it, Bitwise operation does the cast
-		        //with sign, so the result is incorrect.
+				//Cast en non signé
 				V[getX(opcode)] = (byte) ((V[getX(opcode)]&0xFF)>>>1);
 			break;
 			
@@ -319,19 +331,26 @@ public class Cpu {
 			break;
 				
 			case 24:	//EX9E saute l'instruction suivante si la clé stockée dans VX est pressée.
-				System.err.println("[WARNING]: Instruction non implementée " + String.format("%04X", opcode) + "	nb:" + instructionNb);
+				System.out.println("[LOG]: Jump if key in V"+String.format("%01X", getX(opcode)) + " is pressed");
+				if(keyboard.isKeyPressed(VX)) {
+					pc += 0x0002;
+				}
 			break;
 				
 			case 25:	//EXA1 saute l'instruction suivante si la clé stockée dans VX n'est pas pressée.
-				System.err.println("[WARNING]: Instruction non implementée " + String.format("%04X", opcode) + "	nb:" + instructionNb);
+				System.out.println("[LOG]: Jump if key in V"+String.format("%01X", getX(opcode)) + " is not pressed");
+				if(!keyboard.isKeyPressed(VX)) {
+					pc += 0x0002;
+				}
 			break;
 			
-			case 26:	//CXNN 	 jmi xxx:	Mets VX à un nombre aléatoire inférieur à NN
-				System.err.println("[WARNING]: Instruction non implementée " + String.format("%04X", opcode) + "	nb:" + instructionNb);
+			case 26:	//FX07 définit VX à la valeur du compteur. 
+				System.out.println("[LOG]: Set V" + String.format("%01X", getX(opcode)) + " to  " + compteurJeu);
+				V[getX(opcode)] = compteurJeu;
 			break;
 			
-			case 27:	//CXNN 	 jmi xxx:	Mets VX à un nombre aléatoire inférieur à NN
-				System.err.println("[WARNING]: Instruction non implementée " + String.format("%04X", opcode) + "	nb:" + instructionNb);
+			case 27:	//FX0A attend l'appui sur une touche et stocke ensuite la donnée dans VX. 
+				V[getX(opcode)] = (byte) keyboard.waitForKeypress();
 			break;
 			
 			case 28:	//FX15 définit la temporisation à VX.
@@ -339,12 +358,19 @@ public class Cpu {
 				compteurJeu = VX;
 			break;
 			
-			case 29:	//CXNN 	 jmi xxx:	Mets VX à un nombre aléatoire inférieur à NN
-				System.err.println("[WARNING]: Instruction non implementée " + String.format("%04X", opcode) + "	nb:" + instructionNb);
+			case 29:	//FX18 définit la minuterie sonore à VX. 
+				System.out.println("[LOG]: Set buzzercounter to	  V" + String.format("%01X", getX(opcode)) + " :"+String.format("%01X", VX));
+				compteurSon = VX;
 			break;
 			
-			case 30:	//CXNN 	 jmi xxx:	Mets VX à un nombre aléatoire inférieur à NN
-				System.err.println("[WARNING]: Instruction non implementée " + String.format("%04X", opcode) + "	nb:" + instructionNb);
+			case 30:	//FX1E ajoute VX à I. VF est mis à 1 quand il y a overflow (I+VX>0xFFF), et à 0 si tel n'est pas le cas. 
+				System.out.println("[LOG]: Add V" + String.format("%01X", getX(opcode)) + " I");
+				if(I+VX>0xFFF){
+					V[0xF] = 0x01;
+				}else {
+					V[0xF] = 0x00;
+				}
+				I +=VX;
 			break;
 			
 			case 31:	//FX29 définit I à l'emplacement du caractère stocké dans VX. Les caractères 0-F (en hexadécimal) sont représentés par une police 4x5. 
@@ -433,7 +459,6 @@ public class Cpu {
         while(readBytes < nibble){
 
             byte currentByte = (byte) memoire[(I +readBytes)]; //Octet du sprite
-            System.out.println("Représentation : " + String.format("%02X", currentByte));
             for(int i = 0; i <=7; i++){
                     //Pour chaque pixel
                     //Calcule les vraies coordonnées
