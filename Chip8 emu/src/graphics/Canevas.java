@@ -12,7 +12,7 @@ public class Canevas extends JPanel{
 	public static final int hauteur = 32;
 
 	BufferedImage currentFrame;
-	byte[][] ecran = new byte[hauteur][largeur]; //tableau des couleurs
+	byte[][] ecran = new byte[largeur][hauteur]; //tableau des couleurs
 	
 	@Override
 	public void paintComponent(Graphics g) {
@@ -25,15 +25,19 @@ public class Canevas extends JPanel{
 	}
 	
 	public void initialiserEcran() {
-		currentFrame = new BufferedImage(largeur*8, hauteur*8, BufferedImage.TYPE_INT_RGB); 
+		currentFrame = new BufferedImage(largeur*rapport, hauteur*rapport, BufferedImage.TYPE_INT_RGB); 
 	}
-	public boolean dessinerPixel(int x, int y) {
-		if(ecran[x][y] == 0xFF) {
-			ecran[x][y] = (byte) 0x00;
-		}else {
-			ecran[x][y] = (byte) 0xFF;
-		}
-		return ecran[x][y] == 0xFF;
+	public boolean dessinerPixel(boolean bit, int x, int y) {
+		boolean previousPixel = ecran[x][y]==0xFF; //Valeur précedente des pixels
+		boolean newPixel = previousPixel ^ bit; //XOR
+        
+        if(newPixel) {
+        	ecran[x][y] = (byte) 0xFF;
+        }else {
+        	ecran[x][y] = (byte) 0x00;
+        }
+        
+		return previousPixel == true && newPixel == false;
 	}
 	public void effacerEcran() {
 		for(int y =0; y<currentFrame.getHeight();y++) {
@@ -43,9 +47,9 @@ public class Canevas extends JPanel{
 		}
 	}
 	public void updateEcran() {
-		for(int y =0; y<currentFrame.getHeight();y++) {
-			for(int x =0; x<currentFrame.getWidth();x++) {
-				currentFrame.setRGB(x, y, ecran[(int) (y/8)][(int) (x/8)]);
+		for(int x =0; x<currentFrame.getWidth();x++) {
+			for(int y =0; y<currentFrame.getHeight();y++) {
+				currentFrame.setRGB(x, y, ecran[(int) (x/rapport)][(int) (y/rapport)]);
 			}
 		}
 		this.repaint();
