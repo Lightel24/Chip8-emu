@@ -400,7 +400,7 @@ public class Cpu {
 			
 			case 33:	//FX55  	 str v0-vr:	 Stocke V0 à VX en mémoire à partir de l'adresse I
 				byte X = getX(opcode);
-				for(int i=0;i<X;i++) {
+				for(int i=0;i<=X;i++) {
 					memoire[I+i] = V[i]; 
 				}
 			break;
@@ -408,7 +408,7 @@ public class Cpu {
 			case 34: //FX65 remplit V0 à VX avec les valeurs de la mémoire à partir de l'adresse I. 
 
 				X = getX(opcode);
-				for(int i=0;i<X;i++) {
+				for(int i=0;i<=X;i++) {
 					  V[i] = memoire[I+i]; 
 				}
 				

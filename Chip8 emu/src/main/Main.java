@@ -24,7 +24,7 @@ public class Main {
 		keyboard = new Keyboard(null);
 		cpu  = new Cpu(canevas,keyboard);
 		cpu.initialiserCpu();
-		cpu.load("D:\\Users\\gabri\\git\\Chip8-emu\\Chip8 emu\\ressoures\\test_opcode.ch8");
+		cpu.load("ressoures\\test_opcode.ch8");
 		canevas.initialiserEcran();
 		fenetre.setSize((Canevas.largeur+2)*Canevas.rapport,(Canevas.hauteur+5)*Canevas.rapport);
 		fenetre.setResizable(false);
