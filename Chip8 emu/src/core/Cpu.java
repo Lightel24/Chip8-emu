@@ -10,7 +10,11 @@ public class Cpu {
 	final static int TAILLEMEMOIRE =  4096;
 	final static short ADRESSEDEBUT =  0x200;
 	private final static byte[] DEFROM= new byte[]{
-			(byte) 0xF1, 0x0A,	//On attends un appui clavier et on stocke la valeur dans V1
+			//6XNN mets NN dans VX
+			0x61,0x11,
+			0x62,0x12,
+		    //8XY1 Mets VX à VX OR VY
+	  (byte)0x81,0x21,
 	};
 	
 	private byte[] memoire =  new byte[TAILLEMEMOIRE]; 
@@ -165,8 +169,8 @@ public class Cpu {
 	public void cycle() {
 		short opcode =  recupererOpcode();
 		int instructionNb =  jp.recupererInstructionNb(opcode);
-		byte VY = V[(opcode& 0x00F0)>>>8];
-		byte VX = V[(opcode& 0x0F00)>>>8];
+		byte VY = V[getY(opcode)];
+		byte VX = V[getX(opcode)];
 		switch (instructionNb) {
 			case 0 : // Opcode inutile
 				System.out.println("[LOG]: Instruction ONNN non supportée et sera ignorée.");
