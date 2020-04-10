@@ -471,7 +471,7 @@ public class Cpu {
                     int real_x = (int_x + i)%64;
                     int real_y = (int_y + readBytes)%32;
                     
-                    // On résupere l'etat du pixel
+                    // On récupere l'etat du pixel
                     if(ecran.dessinerPixel(getBit(currentByte,7-i),real_x, real_y)){
                         //Un pixel a été effacé
                         vf = (byte)0x01;

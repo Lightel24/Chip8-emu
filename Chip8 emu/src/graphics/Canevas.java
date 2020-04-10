@@ -28,7 +28,7 @@ public class Canevas extends JPanel{
 		currentFrame = new BufferedImage(largeur*rapport, hauteur*rapport, BufferedImage.TYPE_INT_RGB); 
 	}
 	public boolean dessinerPixel(boolean bit, int x, int y) {
-		boolean previousPixel = ecran[x][y]==0xFF; //Valeur précedente des pixels
+		boolean previousPixel = ecran[x][y]==(byte)0xFF; //Valeur précedente des pixels
 		boolean newPixel = previousPixel ^ bit; //XOR
         
         if(newPixel) {
@@ -36,8 +36,8 @@ public class Canevas extends JPanel{
         }else {
         	ecran[x][y] = (byte) 0x00;
         }
-        
-		return previousPixel == true && newPixel == false;
+         
+		return previousPixel && !newPixel;
 	}
 	public void effacerEcran() {
 			for(int x =0; x<ecran.length;x++) {
